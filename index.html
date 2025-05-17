@@ -16,6 +16,7 @@
     .prediction { color: #007700; font-weight: bold; margin-top: 12px; }
     .error { color: red; }
     .info { font-size: 0.9rem; color: #888; margin-top: 8px; }
+    .algorithm { margin-top: 16px; background: #eef; padding: 12px; border-radius: 4px; font-size: 0.95rem; }
   </style>
 </head>
 <body>
@@ -65,6 +66,7 @@
       } else {
         html += `<div class="info">* 使用 Yahoo Finance 公开 API 获取实时数据。</div>`;
       }
+      html += `<div class="algorithm"><strong>算法说明：</strong><br>5日均线 = (P₁ + P₂ + P₃ + P₄ + P₅) / 5<br><code>(closes[0] + closes[1] + closes[2] + closes[3] + closes[4]) / 5</code></div>`;
       resultDiv.innerHTML = html;
     }
   </script>
