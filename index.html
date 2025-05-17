@@ -81,7 +81,8 @@
       }
       try {
         // Use CORS proxy to avoid cross-origin issues
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        // switch to thingproxy.freeboard.io which reliably adds CORS headers
+        const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
         const res = await fetch(proxyUrl);
         if (!res.ok) throw new Error("API 请求失败：" + res.status);
         const data = await res.json();
