@@ -84,24 +84,10 @@
         const closes = chart.indicators.quote[0].close;
         displayData(timestamps, closes);
       } catch (e) {
-        console.warn("Fetch failed, using static data", e);
-        // Static fallback data (演示用收盘价)
-        const closes = [210.7899932861328, 212.92999267578125, 212.3300018310547, 211.4499969482422, 211.25999450683594];
-        let timestamps = [];
-        if (startDate && endDate) {
-          const end = new Date(endDate);
-          const days = closes.length;
-          // 生成与用户结束日期对齐的静态时间戳（倒推 days 天）
-          timestamps = closes.map((_, idx) => {
-            const d = new Date(end);
-            d.setDate(end.getDate() - (days - 1 - idx));
-            return Math.floor(d.getTime() / 1000);
-          });
-        } else {
-          // 默认静态示例时间戳
-          timestamps = [1747056600, 1747143000, 1747229400, 1747315800, 1747402200];
-        }
-        displayData(timestamps, closes, true);
+        console.error("Fetch failed", e);
+        // Display error to user, no static fallback
+        resultDiv.innerHTML = '<div class="error">数据获取失败，请检查网络连接或输入是否有效。</div>';
+        return;
       }
     }
 
