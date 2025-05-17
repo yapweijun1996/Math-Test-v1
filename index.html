@@ -117,10 +117,15 @@
       const slope = num / den;
       const intercept = yMean - slope * xMean;
       const predLR = intercept + slope * n;
+      // 预测日期标签：取最后一条时间戳加一天
+      const lastDate = new Date(timestamps[timestamps.length - 1] * 1000);
+      const predictedDate = new Date(lastDate);
+      predictedDate.setDate(predictedDate.getDate() + 1);
+      const predictedDateLabel = predictedDate.toLocaleDateString();
       html += `<div class="info">数据范围：${new Date(timestamps[0] * 1000).toLocaleDateString()} - ${new Date(timestamps[timestamps.length - 1] * 1000).toLocaleDateString()}</div>`;
       html += `
-        <div class="prediction">5 日均线预测下一个收盘价：${avg.toFixed(2)} USD</div>
-        <div class="prediction">线性回归预测下一个收盘价：${predLR.toFixed(2)} USD</div>`;
+        <div class="prediction">5 日均线预测 ${predictedDateLabel} 收盘价：${avg.toFixed(2)} USD</div>
+        <div class="prediction">线性回归预测 ${predictedDateLabel} 收盘价：${predLR.toFixed(2)} USD</div>`;
       if (isFallback) {
         html += `<div class="info">* 使用静态示例数据演示，无需 API Key 或代理。</div>`;
       } else {
@@ -143,7 +148,7 @@
       const historicalData = closes;
       const maPredictionData = Array(closes.length).fill(null).concat([avg]);
       const lrPredictionData = Array(closes.length).fill(null).concat([predLR]);
-      const chartLabels = [...labels, '预测'];
+      const chartLabels = [...labels, predictedDateLabel];
       // Destroy previous chart if exists
       if (chartInstance) chartInstance.destroy();
       chartInstance = new Chart(ctx, {
