@@ -36,6 +36,7 @@
         <option value="all">所有方法</option>
         <option value="ma">N日均线</option>
         <option value="lr">线性回归</option>
+        <option value="ema">指数加权移动平均 (EMA)</option>
       </select>
     </div>
     <!-- 开始日期自动计算，用户只需选择结束日期 -->
@@ -146,6 +147,13 @@
       const slope = num / den;
       const intercept = yMean - slope * xMean;
       const predLR = intercept + slope * n;
+      // 计算指数加权移动平均 (EMA)
+      const alpha = 2 / (n + 1);
+      let emaValues = [ lastCloses[0] ];
+      for (let i = 1; i < n; i++) {
+        emaValues.push(alpha * lastCloses[i] + (1 - alpha) * emaValues[i - 1]);
+      }
+      const predEMA = emaValues[n - 1];
       // 预测日期标签：取最后一条时间戳加一天
       const lastDate = new Date(timestamps[timestamps.length - 1] * 1000);
       const predictedDate = new Date(lastDate);
@@ -158,6 +166,9 @@
       if (method === 'lr' || method === 'all') {
         html += `<div class="prediction">线性回归 (${windowSize} 天) 预测 ${predictedDateLabel} 收盘价：${predLR.toFixed(2)} USD</div>`;
       }
+      if (method === 'ema' || method === 'all') {
+        html += `<div class="prediction">指数加权移动平均 (EMA) 预测 ${predictedDateLabel} 收盘价：${predEMA.toFixed(2)} USD</div>`;
+      }
       if (isFallback) {
         html += `<div class="info">* 使用静态示例数据演示，无需 API Key 或代理。</div>`;
       } else {
@@ -169,7 +180,11 @@
           &nbsp;&nbsp;斜率 b = Σ(i - x̄)(P_i - ȳ) / Σ(i - x̄)²<br>
           &nbsp;&nbsp;截距 a = ȳ - b × x̄<br>
           &nbsp;&nbsp;预测 Pₙ₊₁ = a + b × N<br>
-        <br><code>// windowSize = N; slope = num/den; intercept = yMean - slope*xMean; predLR = intercept + slope*windowSize;</code>
+       • 指数加权移动平均 (EMA):<br>
+          &nbsp;&nbsp;α = 2/(N+1)<br>
+          &nbsp;&nbsp;EMA₁ = P₁; EMAₜ = α×Pₜ + (1−α)×EMAₜ₋₁;<br>
+          &nbsp;&nbsp;预测 Pₙ₊₁ ≈ EMA_N;<br>
+        <br><code>// windowSize = N; slope = num/den; intercept = yMean - slope*xMean; predLR = intercept + slope*windowSize;  // EMA: α=2/(N+1); predEMA=last EMA value</code>
        </div>`;
       // Add detailed calculation walkthrough example
       html += `<div class="detail" style="margin-top:16px; padding:12px; background:#f9f9f9; border:1px solid #ddd; border-radius:4px;">
@@ -203,6 +218,7 @@
       const historicalData = closes;
       const maPredictionData = Array(closes.length).fill(null).concat([avg]);
       const lrPredictionData = Array(closes.length).fill(null).concat([predLR]);
+      const emaPredictionData = Array(closes.length).fill(null).concat([predEMA]);
       const chartLabels = [...labels, predictedDateLabel];
       // Build chart datasets based on selected method
       const datasets = [
@@ -213,6 +229,9 @@
       }
       if (method === 'lr' || method === 'all') {
         datasets.push({ label: '线性回归预测', data: lrPredictionData, borderColor: '#ff8800', backgroundColor: '#ff8800', pointRadius: 6, type: 'scatter', showLine: false });
+      }
+      if (method === 'ema' || method === 'all') {
+        datasets.push({ label: '指数加权移动平均 (EMA) 预测', data: emaPredictionData, borderColor: '#ff0000', backgroundColor: '#ff0000', pointRadius: 6, type: 'scatter', showLine: false });
       }
       // Destroy previous chart if exists
       if (chartInstance) chartInstance.destroy();
