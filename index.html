@@ -36,9 +36,14 @@
     </div>
     <button onclick="fetchStock()">获取数据 (默认30日，可自定义)</button>
     <div class="result" id="result"></div>
+    <div style="margin-top:24px;">
+      <canvas id="stockChart" width="400" height="220"></canvas>
+    </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
+    let chartInstance = null; // Chart.js instance reuse
     // On load set default date inputs to last 30 days
     document.addEventListener('DOMContentLoaded', () => {
       const endInput = document.getElementById('end-date');
@@ -130,6 +135,29 @@
        <br><code>// slope = num/den; intercept = yMean - slope*xMean; predLR = intercept + slope*n;</code>
       </div>`;
       resultDiv.innerHTML = html;
+      // Chart.js visualization
+      const ctx = document.getElementById('stockChart').getContext('2d');
+      // Prepare labels for all dates
+      const labels = timestamps.map(ts => new Date(ts * 1000).toLocaleDateString());
+      // Build datasets with prediction points
+      const historicalData = closes;
+      const maPredictionData = Array(closes.length).fill(null).concat([avg]);
+      const lrPredictionData = Array(closes.length).fill(null).concat([predLR]);
+      const chartLabels = [...labels, '预测'];
+      // Destroy previous chart if exists
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: [
+            { label: '收盘价 (历史)', data: historicalData, borderColor: '#0077cc', fill: false, tension: 0.1 },
+            { label: '5日均线预测', data: maPredictionData, borderColor: '#00bb00', backgroundColor: '#00bb00', pointRadius: 6, type: 'scatter', showLine: false },
+            { label: '线性回归预测', data: lrPredictionData, borderColor: '#ff8800', backgroundColor: '#ff8800', pointRadius: 6, type: 'scatter', showLine: false }
+          ]
+        },
+        options: { plugins: { legend: { display: true }, tooltip: { enabled: true } }, scales: { x: { title: { display: true, text: '日期' } }, y: { title: { display: true, text: '收盘价 (USD)' } } } }
+      });
     }
   </script>
 </body>
