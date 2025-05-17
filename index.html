@@ -61,9 +61,27 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     let chartInstance = null; // Chart.js instance reuse
+    // TensorFlow.js 简单神经网络预测
+    async function predictWithTF(lastCloses) {
+      const n = lastCloses.length;
+      const xs = tf.tensor2d(lastCloses.map((_, i) => [i]));
+      const ys = tf.tensor2d(lastCloses.map(v => [v]));
+      const model = tf.sequential();
+      model.add(tf.layers.dense({units: 10, activation: 'relu', inputShape: [1]}));
+      model.add(tf.layers.dense({units: 1}));
+      model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+      await model.fit(xs, ys, {epochs: 50});
+      const predTensor = model.predict(tf.tensor2d([[n]]));
+      const pred = (await predTensor.array())[0][0];
+      tf.dispose([xs, ys, predTensor]);
+      model.dispose();
+      return pred;
+    }
+
     // 更新开始日期 based on window-size and end-date
     function updateStartDate() {
       const windowSize = parseInt(document.getElementById('window-size').value, 10) || 30;
@@ -119,7 +137,7 @@
         const chart = data.chart.result[0];
         const timestamps = chart.timestamp;
         const closes = chart.indicators.quote[0].close;
-        displayData(timestamps, closes);
+        await displayData(timestamps, closes);
       } catch (e) {
         console.error("Fetch failed", e);
         // Display error to user, no static fallback
@@ -128,7 +146,7 @@
       }
     }
 
-    function displayData(timestamps, closes, isFallback = false) {
+    async function displayData(timestamps, closes, isFallback = false) {
       const resultDiv = document.getElementById('result');
       const method = document.getElementById('method').value;
       let html = `<div style="overflow-x:auto;"><table>
@@ -217,8 +235,13 @@
       const c2 = meanY2 - a2 * meanX2;
       const predDiff = c2 + a2 * diffs[m2 - 1];
       const predARIMA = lastCloses[n-1] + predDiff;
-      // 机器学习 (ML 集成示例)
-      const predML = (avg + predLR + predEMA) / 3;
+      // 机器学习 (ML) 预测：TensorFlow.js 神经网络
+      let predML = (avg + predLR + predEMA) / 3;
+      try {
+        predML = await predictWithTF(lastCloses);
+      } catch(e) {
+        console.warn('TF.js 预测失败，使用 ensemble fallback', e);
+      }
       // 预测日期标签：取最后一条时间戳加一天
       const lastDate = new Date(timestamps[timestamps.length - 1] * 1000);
       const predictedDate = new Date(lastDate);
