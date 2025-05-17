@@ -22,7 +22,15 @@
 <body>
   <div class="container">
     <h1>Yahoo Finance 股票预测 Demo</h1>
-    <button onclick="fetchStock()">获取 AAPL 近 5 日数据</button>
+    <div>
+      <label for="start-date">开始日期：</label>
+      <input type="date" id="start-date">
+    </div>
+    <div>
+      <label for="end-date">结束日期：</label>
+      <input type="date" id="end-date">
+    </div>
+    <button onclick="fetchStock()">获取数据 (30日或自定义)</button>
     <div class="result" id="result"></div>
   </div>
 
@@ -30,7 +38,18 @@
     async function fetchStock() {
       const resultDiv = document.getElementById('result');
       resultDiv.innerHTML = "加载中...";
-      const url = "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d";
+      const symbol = 'AAPL';
+      const startDate = document.getElementById('start-date').value;
+      const endDate = document.getElementById('end-date').value;
+      let url;
+      if (startDate && endDate) {
+        const period1 = Math.floor(new Date(startDate).getTime() / 1000);
+        const period2 = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
+        url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${period1}&period2=${period2}&interval=1d`;
+      } else {
+        // 默认最近1个月数据（约30天）
+        url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1mo&interval=1d`;
+      }
       try {
         const res = await fetch(url);
         if (!res.ok) throw new Error("API 请求失败：" + res.status);
