@@ -17,6 +17,9 @@
     .error { color: red; }
     .info { font-size: 0.9rem; color: #888; margin-top: 8px; }
     .algorithm { margin-top: 16px; background: #eef; padding: 12px; border-radius: 4px; font-size: 0.95rem; }
+    /* 分组卡片 & 高亮 */
+    .method-card { border: 1px solid #ddd; padding: 8px 12px; margin-top: 12px; border-radius: 6px; background: #fafafa; }
+    .method-card.highlighted { border-color: #0077cc; background: #e6f0ff; }
   </style>
 </head>
 <body>
@@ -223,6 +226,7 @@
       const predictedDateLabel = predictedDate.toLocaleDateString();
       html += `<div class="info">数据范围：${new Date(timestamps[0] * 1000).toLocaleDateString()} - ${new Date(timestamps[timestamps.length - 1] * 1000).toLocaleDateString()}</div>`;
       if (method === 'ma' || method === 'all') {
+        html += `<div class="method-card" data-method="ma">`;
         html += `<div class="prediction">${windowSize} 日均线预测 ${predictedDateLabel} 收盘价：${avg.toFixed(2)} USD</div>`;
         // MA 详细演算
         html += `<details><summary>详细演算 (MA)</summary><ul>`;
@@ -231,8 +235,10 @@
         html += `<li>ΣP = ${sumP.toFixed(2)}</li>`;
         html += `<li>平均 = ΣP/${n} = ${avg.toFixed(2)}</li>`;
         html += `</ul></details>`;
+        html += `</div>`;
       }
       if (method === 'lr' || method === 'all') {
+        html += `<div class="method-card" data-method="lr">`;
         html += `<div class="prediction">线性回归 (${windowSize} 天) 预测 ${predictedDateLabel} 收盘价：${predLR.toFixed(2)} USD</div>`;
         // LR 详细演算
         html += `<details><summary>详细演算 (Linear Regression)</summary><table style="width:100%;border-collapse:collapse;"><tr><th>i</th><th>P_i</th><th>i - x̄</th><th>P_i - ȳ</th><th>(i-x̄)(P_i-ȳ)</th><th>(i-x̄)²</th></tr>`;
@@ -242,43 +248,58 @@
           html += `<tr><td>${i}</td><td>${lastCloses[i].toFixed(2)}</td><td>${xi.toFixed(2)}</td><td>${yi.toFixed(2)}</td><td>${(xi*yi).toFixed(2)}</td><td>${(xi*xi).toFixed(2)}</td></tr>`;
         }
         html += `</table><p>Σ(i-x̄)(P_i-ȳ) = ${num.toFixed(2)}, Σ(i-x̄)² = ${den.toFixed(2)}</p><p>斜率 b = ${slope.toFixed(4)}, 截距 a = ${intercept.toFixed(4)}</p></details>`;
+        html += `</div>`;
       }
       if (method === 'ema' || method === 'all') {
+        html += `<div class="method-card" data-method="ema">`;
         html += `<div class="prediction">指数加权移动平均 (EMA) 预测 ${predictedDateLabel} 收盘价：${predEMA.toFixed(2)} USD</div>`;
         // EMA 详细演算
         html += `<details><summary>详细演算 (EMA)</summary><p>α = ${alpha.toFixed(4)}</p><ul>`;
         emaValues.forEach((v,i) => html += `<li>EMA_${i+1} = ${v.toFixed(2)}</li>`);
         html += `</ul></details>`;
+        html += `</div>`;
       }
       if (method === 'poly' || method === 'all') {
+        html += `<div class="method-card" data-method="poly">`;
         html += `<div class="prediction">多项式回归 (Polynomial Regression) 预测 ${predictedDateLabel} 收盘价：${predPoly.toFixed(2)} USD</div>`;
         // Poly 详细演算
         html += `<details><summary>详细演算 (Polynomial Regression)</summary><p>a = ${a_poly.toFixed(4)}, b = ${b_poly.toFixed(4)}, c = ${c_poly.toFixed(4)}</p><p>预测 = a + b×N + c×N²</p></details>`;
+        html += `</div>`;
       }
       if (method === 'seasonal' || method === 'all') {
+        html += `<div class="method-card" data-method="seasonal">`;
         html += `<div class="prediction">季节性模型 (Seasonal) 预测 ${predictedDateLabel} 收盘价：${predSeasonal.toFixed(2)} USD</div>`;
         // Seasonal 详细演算
         html += `<details><summary>详细演算 (季节性模型)</summary><p>使用 P₁ = ${lastCloses[0].toFixed(2)} 作为预测值</p></details>`;
+        html += `</div>`;
       }
       if (method === 'ma_trend' || method === 'all') {
+        html += `<div class="method-card" data-method="ma_trend">`;
         html += `<div class="prediction">均线+趋势 (MA+Trend) 预测 ${predictedDateLabel} 收盘价：${predMAtrend.toFixed(2)} USD</div>`;
         // MA+Trend 详细演算
         html += `<details><summary>详细演算 (MA+Trend)</summary><p>Avg = ${avg.toFixed(2)}, LR 预测 = ${predLR.toFixed(2)}, (Avg + LR)/2 = ${predMAtrend.toFixed(2)}</p></details>`;
+        html += `</div>`;
       }
       if (method === 'ar' || method === 'all') {
+        html += `<div class="method-card" data-method="ar">`;
         html += `<div class="prediction">自回归 (AR) 预测 ${predictedDateLabel} 收盘价：${predAR.toFixed(2)} USD</div>`;
         // AR 详细演算
         html += `<details><summary>详细演算 (AR1)</summary><p>a₁ = ${a1.toFixed(4)}, c₁ = ${c1.toFixed(2)}, 预测 = c₁ + a₁×Pₙ = ${predAR.toFixed(2)}</p></details>`;
+        html += `</div>`;
       }
       if (method === 'arima' || method === 'all') {
+        html += `<div class="method-card" data-method="arima">`;
         html += `<div class="prediction">ARIMA(1,1,0) 预测 ${predictedDateLabel} 收盘价：${predARIMA.toFixed(2)} USD</div>`;
         // ARIMA 详细演算
         html += `<details><summary>详细演算 (ARIMA)</summary><p>a₂ = ${a2.toFixed(4)}, c₂ = ${c2.toFixed(4)}, 差分预测 = ${predDiff.toFixed(2)}, 预测 = Pₙ + 差分 = ${predARIMA.toFixed(2)}</p></details>`;
+        html += `</div>`;
       }
       if (method === 'ml' || method === 'all') {
+        html += `<div class="method-card" data-method="ml">`;
         html += `<div class="prediction">机器学习 (ML ensemble) 预测 ${predictedDateLabel} 收盘价：${predML.toFixed(2)} USD</div>`;
         // ML 详细演算
         html += `<details><summary>详细演算 (ML 集成)</summary><p>MA = ${avg.toFixed(2)}, LR = ${predLR.toFixed(2)}, EMA = ${predEMA.toFixed(2)}</p><p>ML = (MA + LR + EMA)/3 = ${predML.toFixed(2)}</p></details>`;
+        html += `</div>`;
       }
       if (isFallback) {
         html += `<div class="info">* 使用静态示例数据演示，无需 API Key 或代理。</div>`;
@@ -334,6 +355,11 @@
         <p>预测 P₆ = a + b × 5 = 211.86 - 0.27 = 211.59</p>
       </div>`;
       resultDiv.innerHTML = html;
+      // 高亮当前方法卡片
+      document.querySelectorAll('.method-card').forEach(card => {
+        const m = card.dataset.method;
+        if (method === 'all' || method === m) card.classList.add('highlighted'); else card.classList.remove('highlighted');
+      });
       // Chart.js visualization
       const ctx = document.getElementById('stockChart').getContext('2d');
       // Prepare labels for all dates
