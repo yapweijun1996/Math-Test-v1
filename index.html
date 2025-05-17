@@ -160,6 +160,62 @@
         emaValues.push(alpha * lastCloses[i] + (1 - alpha) * emaValues[i - 1]);
       }
       const predEMA = emaValues[n - 1];
+      // 计算多项式回归 (Polynomial Regression)
+      let SumY = 0, SumXY = 0, SumX2Y = 0, Sx0 = n, Sx1 = 0, Sx2 = 0, Sx3 = 0, Sx4 = 0;
+      for (let i = 0; i < n; i++) {
+        const x = i, y = lastCloses[i];
+        Sx1 += x; Sx2 += x*x; Sx3 += x*x*x; Sx4 += x*x*x*x;
+        SumY += y; SumXY += x*y; SumX2Y += x*x*y;
+      }
+      const M = [[Sx0, Sx1, Sx2], [Sx1, Sx2, Sx3], [Sx2, Sx3, Sx4]];
+      function det3(m) { return m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1]) - m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0]) + m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]); }
+      const D = det3(M);
+      const Ma = [[SumY, Sx1, Sx2], [SumXY, Sx2, Sx3], [SumX2Y, Sx3, Sx4]];
+      const Mb = [[Sx0, SumY, Sx2], [Sx1, SumXY, Sx3], [Sx2, SumX2Y, Sx4]];
+      const Mc = [[Sx0, Sx1, SumY], [Sx1, Sx2, SumXY], [Sx2, Sx3, SumX2Y]];
+      const a_poly = det3(Ma)/D, b_poly = det3(Mb)/D, c_poly = det3(Mc)/D;
+      const predPoly = a_poly + b_poly * n + c_poly * n * n;
+      // 季节性模型 (Seasonal)
+      const predSeasonal = lastCloses[0];
+      // 均线 + 趋势 (MA + Trend)
+      const predMAtrend = (avg + predLR) / 2;
+      // 自回归模型 (AR1)
+      const m1 = n - 1;
+      let arSumX = 0, arSumY = 0;
+      for (let i = 0; i < m1; i++) {
+        arSumX += lastCloses[i];
+        arSumY += lastCloses[i+1];
+      }
+      const meanX1 = arSumX / m1, meanY1 = arSumY / m1;
+      let cov1 = 0, varX1 = 0;
+      for (let i = 0; i < m1; i++) {
+        cov1 += (lastCloses[i] - meanX1) * (lastCloses[i+1] - meanY1);
+        varX1 += (lastCloses[i] - meanX1) ** 2;
+      }
+      const a1 = cov1 / varX1;
+      const c1 = meanY1 - a1 * meanX1;
+      const predAR = c1 + a1 * lastCloses[n-1];
+      // ARIMA(1,1,0)
+      const diffs = [];
+      for (let i = 1; i < n; i++) diffs.push(lastCloses[i] - lastCloses[i-1]);
+      const m2 = diffs.length;
+      let ar2SumX = 0, ar2SumY = 0;
+      for (let i = 0; i < m2 - 1; i++) {
+        ar2SumX += diffs[i];
+        ar2SumY += diffs[i+1];
+      }
+      const meanX2 = ar2SumX / (m2 - 1), meanY2 = ar2SumY / (m2 - 1);
+      let cov2 = 0, varX2 = 0;
+      for (let i = 0; i < m2 - 1; i++) {
+        cov2 += (diffs[i] - meanX2) * (diffs[i+1] - meanY2);
+        varX2 += (diffs[i] - meanX2) ** 2;
+      }
+      const a2 = cov2 / varX2;
+      const c2 = meanY2 - a2 * meanX2;
+      const predDiff = c2 + a2 * diffs[m2 - 1];
+      const predARIMA = lastCloses[n-1] + predDiff;
+      // 机器学习 (ML 集成示例)
+      const predML = (avg + predLR + predEMA) / 3;
       // 预测日期标签：取最后一条时间戳加一天
       const lastDate = new Date(timestamps[timestamps.length - 1] * 1000);
       const predictedDate = new Date(lastDate);
@@ -174,6 +230,24 @@
       }
       if (method === 'ema' || method === 'all') {
         html += `<div class="prediction">指数加权移动平均 (EMA) 预测 ${predictedDateLabel} 收盘价：${predEMA.toFixed(2)} USD</div>`;
+      }
+      if (method === 'poly' || method === 'all') {
+        html += `<div class="prediction">多项式回归 (Polynomial Regression) 预测 ${predictedDateLabel} 收盘价：${predPoly.toFixed(2)} USD</div>`;
+      }
+      if (method === 'seasonal' || method === 'all') {
+        html += `<div class="prediction">季节性模型 (Seasonal) 预测 ${predictedDateLabel} 收盘价：${predSeasonal.toFixed(2)} USD</div>`;
+      }
+      if (method === 'ma_trend' || method === 'all') {
+        html += `<div class="prediction">均线+趋势 (MA+Trend) 预测 ${predictedDateLabel} 收盘价：${predMAtrend.toFixed(2)} USD</div>`;
+      }
+      if (method === 'ar' || method === 'all') {
+        html += `<div class="prediction">自回归 (AR) 预测 ${predictedDateLabel} 收盘价：${predAR.toFixed(2)} USD</div>`;
+      }
+      if (method === 'arima' || method === 'all') {
+        html += `<div class="prediction">ARIMA(1,1,0) 预测 ${predictedDateLabel} 收盘价：${predARIMA.toFixed(2)} USD</div>`;
+      }
+      if (method === 'ml' || method === 'all') {
+        html += `<div class="prediction">机器学习 (ML ensemble) 预测 ${predictedDateLabel} 收盘价：${predML.toFixed(2)} USD</div>`;
       }
       if (isFallback) {
         html += `<div class="info">* 使用静态示例数据演示，无需 API Key 或代理。</div>`;
@@ -251,6 +325,24 @@
       }
       if (method === 'ema' || method === 'all') {
         datasets.push({ label: '指数加权移动平均 (EMA) 预测', data: emaPredictionData, borderColor: '#ff0000', backgroundColor: '#ff0000', pointRadius: 6, type: 'scatter', showLine: false });
+      }
+      if (method === 'poly' || method === 'all') {
+        datasets.push({ label: '多项式回归 (Polynomial)', data: Array(closes.length).fill(null).concat([predPoly]), borderColor: '#cc0077', backgroundColor: '#cc0077', pointStyle: 'triangle', pointRadius: 6, type: 'scatter', showLine: false });
+      }
+      if (method === 'seasonal' || method === 'all') {
+        datasets.push({ label: '季节性 (Seasonal)', data: Array(closes.length).fill(null).concat([predSeasonal]), borderColor: '#7700cc', backgroundColor: '#7700cc', pointStyle: 'triangleRot', pointRadius: 6, type: 'scatter', showLine: false });
+      }
+      if (method === 'ma_trend' || method === 'all') {
+        datasets.push({ label: '均线+趋势 (MA+Trend)', data: Array(closes.length).fill(null).concat([predMAtrend]), borderColor: '#00cccc', backgroundColor: '#00cccc', pointStyle: 'rectRot', pointRadius: 6, type: 'scatter', showLine: false });
+      }
+      if (method === 'ar' || method === 'all') {
+        datasets.push({ label: '自回归 (AR)', data: Array(closes.length).fill(null).concat([predAR]), borderColor: '#cc7700', backgroundColor: '#cc7700', pointStyle: 'cross', pointRadius: 6, type: 'scatter', showLine: false });
+      }
+      if (method === 'arima' || method === 'all') {
+        datasets.push({ label: 'ARIMA', data: Array(closes.length).fill(null).concat([predARIMA]), borderColor: '#ff00cc', backgroundColor: '#ff00cc', pointStyle: 'star', pointRadius: 6, type: 'scatter', showLine: false });
+      }
+      if (method === 'ml' || method === 'all') {
+        datasets.push({ label: '机器学习 (ML)', data: Array(closes.length).fill(null).concat([predML]), borderColor: '#000000', backgroundColor: '#000000', pointStyle: 'circle', pointRadius: 6, type: 'scatter', showLine: false });
       }
       // Destroy previous chart if exists
       if (chartInstance) chartInstance.destroy();
