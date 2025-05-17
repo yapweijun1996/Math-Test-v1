@@ -31,6 +31,14 @@
       <input type="number" id="window-size" min="1" max="365" value="30" style="width:60px;">
     </div>
     <div>
+      <label for="method">预测方法：</label>
+      <select id="method">
+        <option value="all">所有方法</option>
+        <option value="ma">N日均线</option>
+        <option value="lr">线性回归</option>
+      </select>
+    </div>
+    <div>
       <label for="start-date">开始日期：</label>
       <input type="date" id="start-date">
     </div>
@@ -100,6 +108,7 @@
 
     function displayData(timestamps, closes, isFallback = false) {
       const resultDiv = document.getElementById('result');
+      const method = document.getElementById('method').value;
       let html = `<div style="overflow-x:auto;"><table>
         <tr><th>日期</th><th>收盘价 (USD)</th></tr>`;
       for (let i = 0; i < timestamps.length; i++) {
@@ -131,9 +140,12 @@
       predictedDate.setDate(predictedDate.getDate() + 1);
       const predictedDateLabel = predictedDate.toLocaleDateString();
       html += `<div class="info">数据范围：${new Date(timestamps[0] * 1000).toLocaleDateString()} - ${new Date(timestamps[timestamps.length - 1] * 1000).toLocaleDateString()}</div>`;
-      html += `
-        <div class="prediction">${windowSize} 日均线预测 ${predictedDateLabel} 收盘价：${avg.toFixed(2)} USD</div>
-        <div class="prediction">线性回归 (${windowSize} 天) 预测 ${predictedDateLabel} 收盘价：${predLR.toFixed(2)} USD</div>`;
+      if (method === 'ma' || method === 'all') {
+        html += `<div class="prediction">${windowSize} 日均线预测 ${predictedDateLabel} 收盘价：${avg.toFixed(2)} USD</div>`;
+      }
+      if (method === 'lr' || method === 'all') {
+        html += `<div class="prediction">线性回归 (${windowSize} 天) 预测 ${predictedDateLabel} 收盘价：${predLR.toFixed(2)} USD</div>`;
+      }
       if (isFallback) {
         html += `<div class="info">* 使用静态示例数据演示，无需 API Key 或代理。</div>`;
       } else {
@@ -180,17 +192,23 @@
       const maPredictionData = Array(closes.length).fill(null).concat([avg]);
       const lrPredictionData = Array(closes.length).fill(null).concat([predLR]);
       const chartLabels = [...labels, predictedDateLabel];
+      // Build chart datasets based on selected method
+      const datasets = [
+        { label: '收盘价 (历史)', data: historicalData, borderColor: '#0077cc', fill: false, tension: 0.1 }
+      ];
+      if (method === 'ma' || method === 'all') {
+        datasets.push({ label: '5日均线预测', data: maPredictionData, borderColor: '#00bb00', backgroundColor: '#00bb00', pointRadius: 6, type: 'scatter', showLine: false });
+      }
+      if (method === 'lr' || method === 'all') {
+        datasets.push({ label: '线性回归预测', data: lrPredictionData, borderColor: '#ff8800', backgroundColor: '#ff8800', pointRadius: 6, type: 'scatter', showLine: false });
+      }
       // Destroy previous chart if exists
       if (chartInstance) chartInstance.destroy();
       chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels: chartLabels,
-          datasets: [
-            { label: '收盘价 (历史)', data: historicalData, borderColor: '#0077cc', fill: false, tension: 0.1 },
-            { label: '5日均线预测', data: maPredictionData, borderColor: '#00bb00', backgroundColor: '#00bb00', pointRadius: 6, type: 'scatter', showLine: false },
-            { label: '线性回归预测', data: lrPredictionData, borderColor: '#ff8800', backgroundColor: '#ff8800', pointRadius: 6, type: 'scatter', showLine: false }
-          ]
+          datasets: datasets
         },
         options: { plugins: { legend: { display: true }, tooltip: { enabled: true } }, scales: { x: { title: { display: true, text: '日期' } }, y: { title: { display: true, text: '收盘价 (USD)' } } } }
       });
