@@ -37,6 +37,12 @@
         <option value="ma">N日均线</option>
         <option value="lr">线性回归</option>
         <option value="ema">指数加权移动平均 (EMA)</option>
+        <option value="poly">多项式回归 (Polynomial Regression)</option>
+        <option value="seasonal">季节性模型 (Seasonal Model)</option>
+        <option value="ma_trend">均线 + 趋势 (MA + Trend)</option>
+        <option value="ar">自回归模型 (AR)</option>
+        <option value="arima">ARIMA</option>
+        <option value="ml">机器学习 (Machine Learning)</option>
       </select>
     </div>
     <!-- 开始日期自动计算，用户只需选择结束日期 -->
@@ -175,15 +181,28 @@
         html += `<div class="info">* 使用 Yahoo Finance 公开 API 获取实时数据。</div>`;
       }
       html += `<div class="algorithm"><strong>算法说明：</strong><br>
-       • N日均线 (Moving Average) = (P₁ + P₂ + ... + P_N) / N<br>
-       • 简单线性回归 (Linear Regression):<br>
-          &nbsp;&nbsp;斜率 b = Σ(i - x̄)(P_i - ȳ) / Σ(i - x̄)²<br>
-          &nbsp;&nbsp;截距 a = ȳ - b × x̄<br>
-          &nbsp;&nbsp;预测 Pₙ₊₁ = a + b × N<br>
-       • 指数加权移动平均 (EMA):<br>
-          &nbsp;&nbsp;α = 2/(N+1)<br>
-          &nbsp;&nbsp;EMA₁ = P₁; EMAₜ = α×Pₜ + (1−α)×EMAₜ₋₁;<br>
-          &nbsp;&nbsp;预测 Pₙ₊₁ ≈ EMA_N;<br>
+        • N日均线 (Moving Average) = (P₁ + P₂ + ... + P_N) / N<br>
+        • 简单线性回归 (Linear Regression):<br>
+           &nbsp;&nbsp;斜率 b = Σ(i - x̄)(P_i - ȳ) / Σ(i - x̄)²<br>
+           &nbsp;&nbsp;截距 a = ȳ - b × x̄<br>
+           &nbsp;&nbsp;预测 Pₙ₊₁ = a + b × N<br>
+        • 指数加权移动平均 (EMA):<br>
+           &nbsp;&nbsp;α = 2/(N+1)<br>
+           &nbsp;&nbsp;EMA₁ = P₁; EMAₜ = α×Pₜ + (1−α)×EMAₜ₋₁;<br>
+           &nbsp;&nbsp;预测 Pₙ₊₁ ≈ EMA_N;<br>
+        • 多项式回归 (Polynomial Regression):<br>
+           &nbsp;&nbsp;Fit y = a + b·x + c·x² via least squares;<br>
+           &nbsp;&nbsp;预测 Pₙ₊₁ ≈ a + b·N + c·N²;<br>
+        • 简单季节性模型 (Seasonal):<br>
+           &nbsp;&nbsp;If period = N, 预测用 P₁;<br>
+        • 均线 + 趋势 (MA + Trend):<br>
+           &nbsp;&nbsp;Avg = MA; Trend = LR; 预测 = (Avg + Trend预测)/2;<br>
+        • 自回归 (AR(p)):<br>
+           &nbsp;&nbsp;Pₜ₊₁ = c + Σ_{i=1..p} a_i P_{t-i+1};<br>
+        • ARIMA(p,d,q):<br>
+           &nbsp;&nbsp;(复杂模型, 涉及差分和MA);<br>
+        • 机器学习 (ML):<br>
+           &nbsp;&nbsp;如决策树、神经网络等;<br>
         <br><code>// windowSize = N; slope = num/den; intercept = yMean - slope*xMean; predLR = intercept + slope*windowSize;  // EMA: α=2/(N+1); predEMA=last EMA value</code>
        </div>`;
       // Add detailed calculation walkthrough example
