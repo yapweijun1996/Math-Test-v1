@@ -38,10 +38,8 @@
         <option value="lr">线性回归</option>
       </select>
     </div>
-    <div>
-      <label for="start-date">开始日期：</label>
-      <input type="date" id="start-date">
-    </div>
+    <!-- 开始日期自动计算，用户只需选择结束日期 -->
+    <input type="hidden" id="start-date">
     <div>
       <label for="end-date">结束日期：</label>
       <input type="date" id="end-date">
@@ -56,15 +54,30 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     let chartInstance = null; // Chart.js instance reuse
-    // On load set default date inputs to last 30 days
-    document.addEventListener('DOMContentLoaded', () => {
+    // 更新开始日期 based on window-size and end-date
+    function updateStartDate() {
+      const windowSize = parseInt(document.getElementById('window-size').value, 10) || 30;
       const endInput = document.getElementById('end-date');
       const startInput = document.getElementById('start-date');
+      if (endInput.value) {
+        const endDate = new Date(endInput.value);
+        const startDate = new Date(endDate);
+        startDate.setDate(endDate.getDate() - windowSize + 1);
+        const yyyy = startDate.getFullYear();
+        const mm = String(startDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(startDate.getDate()).padStart(2, '0');
+        startInput.value = `${yyyy}-${mm}-${dd}`;
+      }
+    }
+
+    // On load set default end date and calculate start date
+    document.addEventListener('DOMContentLoaded', () => {
+      const endInput = document.getElementById('end-date');
       const today = new Date();
-      const prior = new Date(today);
-      prior.setDate(prior.getDate() - 29);
       endInput.valueAsDate = today;
-      startInput.valueAsDate = prior;
+      updateStartDate();
+      document.getElementById('window-size').addEventListener('input', updateStartDate);
+      endInput.addEventListener('input', updateStartDate);
     });
 
     async function fetchStock() {
