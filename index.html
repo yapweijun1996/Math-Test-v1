@@ -88,9 +88,8 @@
         url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1mo&interval=1d`;
       }
       try {
-        // Use CORS proxy to avoid cross-origin issues
-        // switch to thingproxy.freeboard.io which reliably adds CORS headers
-        const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
+        // use AllOrigins proxy to avoid CORS issues
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
         const res = await fetch(proxyUrl);
         if (!res.ok) throw new Error("API 请求失败：" + res.status);
         const data = await res.json();
