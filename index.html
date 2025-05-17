@@ -19,6 +19,7 @@
     .error { color: red; }
     .info { font-size: 0.9rem; color: #888; margin-top: 8px; }
     .algorithm { margin-top: 16px; background: #eef; padding: 12px; border-radius: 4px; font-size: 0.95rem; }
+    .error-info { font-size: 0.9rem; color: #555; margin-top: 4px; }
     /* 分组卡片 & 高亮 */
     .method-card { border: 1px solid #ddd; padding: 8px 12px; margin-top: 12px; border-radius: 6px; background: #fafafa; }
     .method-card.highlighted { border-color: #0077cc; background: #e6f0ff; }
@@ -269,6 +270,48 @@
         html += `<li>平均 = ΣP/${n} = ${avg.toFixed(2)}</li>`;
         html += `</ul></details>`;
         html += `</div>`;
+        // 误差分析函数 (仅支持 MA, LR, EMA)
+        function computePredFor(methodName, arr) {
+          const n2 = arr.length;
+          const avg2 = arr.reduce((a,b)=>a+b,0)/n2;
+          if (methodName === 'ma') return avg2;
+          if (methodName === 'lr') {
+            const xSum2 = (n2 - 1) * n2 / 2;
+            const xMean2 = xSum2 / n2;
+            const yMean2 = avg2;
+            let num2 = 0, den2 = 0;
+            for (let i = 0; i < n2; i++) {
+              num2 += (i - xMean2) * (arr[i] - yMean2);
+              den2 += (i - xMean2) * (i - xMean2);
+            }
+            const b2 = num2 / den2;
+            const a2 = yMean2 - b2 * xMean2;
+            return a2 + b2 * n2;
+          }
+          if (methodName === 'ema') {
+            const alpha2 = 2 / (n2 + 1);
+            let ema2 = arr[0];
+            for (let i = 1; i < n2; i++) ema2 = alpha2 * arr[i] + (1 - alpha2) * ema2;
+            return ema2;
+          }
+          return null;
+        }
+        function calcError(methodName) {
+          const count = closes.length - windowSize;
+          if (count <= 0) return null;
+          let sumSq = 0, sumAbs = 0;
+          for (let i = windowSize; i < closes.length; i++) {
+            const arr = closes.slice(i - windowSize, i);
+            const pred = computePredFor(methodName, arr);
+            if (pred === null) return null;
+            const err = pred - closes[i];
+            sumSq += err * err;
+            sumAbs += Math.abs(err);
+          }
+          return { mse: sumSq / count, mae: sumAbs / count };
+        }
+        const errsMA = calcError('ma');
+        if (errsMA) html += `<div class="error-info">误差分析 (MSE: ${errsMA.mse.toFixed(2)}, MAE: ${errsMA.mae.toFixed(2)})</div>`;
       }
       if (method === 'lr' || method === 'all') {
         html += `<div class="method-card" data-method="lr">`;
@@ -282,6 +325,8 @@
         }
         html += `</table><p>Σ(i-x̄)(P_i-ȳ) = ${num.toFixed(2)}, Σ(i-x̄)² = ${den.toFixed(2)}</p><p>斜率 b = ${slope.toFixed(4)}, 截距 a = ${intercept.toFixed(4)}</p></details>`;
         html += `</div>`;
+        const errsLR = calcError('lr');
+        if (errsLR) html += `<div class="error-info">误差分析 (MSE: ${errsLR.mse.toFixed(2)}, MAE: ${errsLR.mae.toFixed(2)})</div>`;
       }
       if (method === 'ema' || method === 'all') {
         html += `<div class="method-card" data-method="ema">`;
@@ -291,6 +336,8 @@
         emaValues.forEach((v,i) => html += `<li>EMA_${i+1} = ${v.toFixed(2)}</li>`);
         html += `</ul></details>`;
         html += `</div>`;
+        const errsEMA = calcError('ema');
+        if (errsEMA) html += `<div class="error-info">误差分析 (MSE: ${errsEMA.mse.toFixed(2)}, MAE: ${errsEMA.mae.toFixed(2)})</div>`;
       }
       if (method === 'poly' || method === 'all') {
         html += `<div class="method-card" data-method="poly">`;
