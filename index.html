@@ -23,6 +23,10 @@
   <div class="container">
     <h1>Yahoo Finance 股票预测 Demo</h1>
     <div>
+      <label for="symbol">股票代码：</label>
+      <input type="text" id="symbol" placeholder="AAPL">
+    </div>
+    <div>
       <label for="start-date">开始日期：</label>
       <input type="date" id="start-date">
     </div>
@@ -30,17 +34,33 @@
       <label for="end-date">结束日期：</label>
       <input type="date" id="end-date">
     </div>
-    <button onclick="fetchStock()">获取数据 (30日或自定义)</button>
+    <button onclick="fetchStock()">获取数据 (默认30日，可自定义)</button>
     <div class="result" id="result"></div>
   </div>
 
   <script>
+    // On load set default date inputs to last 30 days
+    document.addEventListener('DOMContentLoaded', () => {
+      const endInput = document.getElementById('end-date');
+      const startInput = document.getElementById('start-date');
+      const today = new Date();
+      const prior = new Date(today);
+      prior.setDate(prior.getDate() - 29);
+      endInput.valueAsDate = today;
+      startInput.valueAsDate = prior;
+    });
+
     async function fetchStock() {
       const resultDiv = document.getElementById('result');
       resultDiv.innerHTML = "加载中...";
-      const symbol = 'AAPL';
+      const symbolInput = document.getElementById('symbol').value.trim().toUpperCase();
+      const symbol = symbolInput || 'AAPL';
       const startDate = document.getElementById('start-date').value;
       const endDate = document.getElementById('end-date').value;
+      if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        resultDiv.innerHTML = '<div class="error">错误：开始日期不能晚于结束日期。</div>';
+        return;
+      }
       let url;
       if (startDate && endDate) {
         const period1 = Math.floor(new Date(startDate).getTime() / 1000);
@@ -69,30 +89,31 @@
 
     function displayData(timestamps, closes, isFallback = false) {
       const resultDiv = document.getElementById('result');
-      let html = `<table>
+      let html = `<div style="overflow-x:auto;"><table>
         <tr><th>日期</th><th>收盘价 (USD)</th></tr>`;
-      let sum = 0;
       for (let i = 0; i < timestamps.length; i++) {
         const date = new Date(timestamps[i] * 1000).toLocaleDateString();
         html += `<tr><td>${date}</td><td>${closes[i].toFixed(2)}</td></tr>`;
-        sum += closes[i];
       }
-      const avg = sum / timestamps.length;
-      // 计算简单线性回归预测
-      const n = timestamps.length;
-      let xSum = 0;
-      for (let i = 0; i < n; i++) xSum += i;
+      html += `</table></div>`;
+      const windowSize = Math.min(5, closes.length);
+      const lastCloses = closes.slice(-windowSize);
+      const avg = lastCloses.reduce((a, b) => a + b, 0) / windowSize;
+      // 计算简单线性回归预测基于最后 windowSize 天的数据
+      const n = windowSize;
+      const xSum = (n - 1) * n / 2;
       const xMean = xSum / n;
-      const yMean = avg; // sum/n
+      const yMean = avg;
       let num = 0, den = 0;
       for (let i = 0; i < n; i++) {
-        num += (i - xMean) * (closes[i] - yMean);
+        num += (i - xMean) * (lastCloses[i] - yMean);
         den += (i - xMean) * (i - xMean);
       }
       const slope = num / den;
       const intercept = yMean - slope * xMean;
       const predLR = intercept + slope * n;
-      html += `</table>
+      html += `<div class="info">数据范围：${new Date(timestamps[0] * 1000).toLocaleDateString()} - ${new Date(timestamps[timestamps.length - 1] * 1000).toLocaleDateString()}</div>`;
+      html += `
         <div class="prediction">5 日均线预测下一个收盘价：${avg.toFixed(2)} USD</div>
         <div class="prediction">线性回归预测下一个收盘价：${predLR.toFixed(2)} USD</div>`;
       if (isFallback) {
