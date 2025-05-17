@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Yahoo Finance 股票预测 Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6fa; margin: 0; padding: 0; }
+    .container { max-width: 500px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+    h1 { text-align: center; }
+    button { padding: 8px 16px; font-size: 1rem; margin-top: 8px; }
+    .result { margin-top: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 6px; text-align: right; }
+    th { background: #f0f0f0; }
+    .prediction { color: #007700; font-weight: bold; margin-top: 12px; }
+    .error { color: red; }
+    .info { font-size: 0.9rem; color: #888; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Yahoo Finance 股票预测 Demo</h1>
+    <button onclick="fetchStock()">获取 AAPL 近 5 日数据</button>
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    async function fetchStock() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = "加载中...";
+      const url = "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d";
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("API 请求失败：" + res.status);
+        const data = await res.json();
+        const chart = data.chart.result[0];
+        const timestamps = chart.timestamp;
+        const closes = chart.indicators.quote[0].close;
+        displayData(timestamps, closes);
+      } catch (e) {
+        console.warn("Fetch failed, using static data", e);
+        // Static fallback data (时间戳和收盘价)
+        const timestamps = [1747056600, 1747143000, 1747229400, 1747315800, 1747402200];
+        const closes = [210.7899932861328, 212.92999267578125, 212.3300018310547, 211.4499969482422, 211.25999450683594];
+        displayData(timestamps, closes, true);
+      }
+    }
+
+    function displayData(timestamps, closes, isFallback = false) {
+      const resultDiv = document.getElementById('result');
+      let html = `<table>
+        <tr><th>日期</th><th>收盘价 (USD)</th></tr>`;
+      let sum = 0;
+      for (let i = 0; i < timestamps.length; i++) {
+        const date = new Date(timestamps[i] * 1000).toLocaleDateString();
+        html += `<tr><td>${date}</td><td>${closes[i].toFixed(2)}</td></tr>`;
+        sum += closes[i];
+      }
+      const avg = sum / timestamps.length;
+      html += `</table>
+        <div class="prediction">5 日均线预测下一个收盘价：${avg.toFixed(2)} USD</div>`;
+      if (isFallback) {
+        html += `<div class="info">* 使用静态示例数据演示，无需 API Key 或代理。</div>`;
+      } else {
+        html += `<div class="info">* 使用 Yahoo Finance 公开 API 获取实时数据。</div>`;
+      }
+      resultDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html> 
