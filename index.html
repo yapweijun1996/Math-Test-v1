@@ -14,6 +14,8 @@
     th, td { border: 1px solid #ddd; padding: 6px; text-align: right; }
     th { background: #f0f0f0; }
     .prediction { color: #007700; font-weight: bold; margin-top: 12px; }
+    .prediction.up { color: #008800; }
+    .prediction.down { color: #cc0000; }
     .error { color: red; }
     .info { font-size: 0.9rem; color: #888; margin-top: 8px; }
     .algorithm { margin-top: 16px; background: #eef; padding: 12px; border-radius: 4px; font-size: 0.95rem; }
@@ -80,6 +82,13 @@
       tf.dispose([xs, ys, predTensor]);
       model.dispose();
       return pred;
+    }
+
+    // 判断涨跌颜色
+    function getUpDownClass(pred, last) {
+      if (pred > last) return 'up';
+      if (pred < last) return 'down';
+      return '';
     }
 
     // 更新开始日期 based on window-size and end-date
@@ -161,8 +170,9 @@
       const windowSize = Math.min(windowInput, closes.length);
       const lastCloses = closes.slice(-windowSize);
       const avg = lastCloses.reduce((a, b) => a + b, 0) / windowSize;
-      // 计算简单线性回归预测基于最后 windowSize 天的数据
       const n = windowSize;
+      const lastPrice = lastCloses[n - 1];
+      // 计算简单线性回归预测基于最后 windowSize 天的数据
       const xSum = (n - 1) * n / 2;
       const xMean = xSum / n;
       const yMean = avg;
@@ -250,7 +260,7 @@
       html += `<div class="info">数据范围：${new Date(timestamps[0] * 1000).toLocaleDateString()} - ${new Date(timestamps[timestamps.length - 1] * 1000).toLocaleDateString()}</div>`;
       if (method === 'ma' || method === 'all') {
         html += `<div class="method-card" data-method="ma">`;
-        html += `<div class="prediction">${windowSize} 日均线预测 ${predictedDateLabel} 收盘价：${avg.toFixed(2)} USD</div>`;
+        html += `<div class="prediction ${getUpDownClass(avg, lastPrice)}">${windowSize} 日均线预测 ${predictedDateLabel} 收盘价：${avg.toFixed(2)} USD</div>`;
         // MA 详细演算
         html += `<details><summary>详细演算 (MA)</summary><ul>`;
         lastCloses.forEach((p,i) => html += `<li>P${i+1} = ${p.toFixed(2)}</li>`);
@@ -262,7 +272,7 @@
       }
       if (method === 'lr' || method === 'all') {
         html += `<div class="method-card" data-method="lr">`;
-        html += `<div class="prediction">线性回归 (${windowSize} 天) 预测 ${predictedDateLabel} 收盘价：${predLR.toFixed(2)} USD</div>`;
+        html += `<div class="prediction ${getUpDownClass(predLR, lastPrice)}">线性回归 (${windowSize} 天) 预测 ${predictedDateLabel} 收盘价：${predLR.toFixed(2)} USD</div>`;
         // LR 详细演算
         html += `<details><summary>详细演算 (Linear Regression)</summary><table style="width:100%;border-collapse:collapse;"><tr><th>i</th><th>P_i</th><th>i - x̄</th><th>P_i - ȳ</th><th>(i-x̄)(P_i-ȳ)</th><th>(i-x̄)²</th></tr>`;
         for (let i = 0; i < n; i++) {
@@ -275,7 +285,7 @@
       }
       if (method === 'ema' || method === 'all') {
         html += `<div class="method-card" data-method="ema">`;
-        html += `<div class="prediction">指数加权移动平均 (EMA) 预测 ${predictedDateLabel} 收盘价：${predEMA.toFixed(2)} USD</div>`;
+        html += `<div class="prediction ${getUpDownClass(predEMA, lastPrice)}">指数加权移动平均 (EMA) 预测 ${predictedDateLabel} 收盘价：${predEMA.toFixed(2)} USD</div>`;
         // EMA 详细演算
         html += `<details><summary>详细演算 (EMA)</summary><p>α = ${alpha.toFixed(4)}</p><ul>`;
         emaValues.forEach((v,i) => html += `<li>EMA_${i+1} = ${v.toFixed(2)}</li>`);
@@ -284,42 +294,42 @@
       }
       if (method === 'poly' || method === 'all') {
         html += `<div class="method-card" data-method="poly">`;
-        html += `<div class="prediction">多项式回归 (Polynomial Regression) 预测 ${predictedDateLabel} 收盘价：${predPoly.toFixed(2)} USD</div>`;
+        html += `<div class="prediction ${getUpDownClass(predPoly, lastPrice)}">多项式回归 (Polynomial Regression) 预测 ${predictedDateLabel} 收盘价：${predPoly.toFixed(2)} USD</div>`;
         // Poly 详细演算
         html += `<details><summary>详细演算 (Polynomial Regression)</summary><p>a = ${a_poly.toFixed(4)}, b = ${b_poly.toFixed(4)}, c = ${c_poly.toFixed(4)}</p><p>预测 = a + b×N + c×N²</p></details>`;
         html += `</div>`;
       }
       if (method === 'seasonal' || method === 'all') {
         html += `<div class="method-card" data-method="seasonal">`;
-        html += `<div class="prediction">季节性模型 (Seasonal) 预测 ${predictedDateLabel} 收盘价：${predSeasonal.toFixed(2)} USD</div>`;
+        html += `<div class="prediction ${getUpDownClass(predSeasonal, lastPrice)}">季节性模型 (Seasonal) 预测 ${predictedDateLabel} 收盘价：${predSeasonal.toFixed(2)} USD</div>`;
         // Seasonal 详细演算
         html += `<details><summary>详细演算 (季节性模型)</summary><p>使用 P₁ = ${lastCloses[0].toFixed(2)} 作为预测值</p></details>`;
         html += `</div>`;
       }
       if (method === 'ma_trend' || method === 'all') {
         html += `<div class="method-card" data-method="ma_trend">`;
-        html += `<div class="prediction">均线+趋势 (MA+Trend) 预测 ${predictedDateLabel} 收盘价：${predMAtrend.toFixed(2)} USD</div>`;
+        html += `<div class="prediction ${getUpDownClass(predMAtrend, lastPrice)}">均线+趋势 (MA+Trend) 预测 ${predictedDateLabel} 收盘价：${predMAtrend.toFixed(2)} USD</div>`;
         // MA+Trend 详细演算
         html += `<details><summary>详细演算 (MA+Trend)</summary><p>Avg = ${avg.toFixed(2)}, LR 预测 = ${predLR.toFixed(2)}, (Avg + LR)/2 = ${predMAtrend.toFixed(2)}</p></details>`;
         html += `</div>`;
       }
       if (method === 'ar' || method === 'all') {
         html += `<div class="method-card" data-method="ar">`;
-        html += `<div class="prediction">自回归 (AR) 预测 ${predictedDateLabel} 收盘价：${predAR.toFixed(2)} USD</div>`;
+        html += `<div class="prediction ${getUpDownClass(predAR, lastPrice)}">自回归 (AR) 预测 ${predictedDateLabel} 收盘价：${predAR.toFixed(2)} USD</div>`;
         // AR 详细演算
         html += `<details><summary>详细演算 (AR1)</summary><p>a₁ = ${a1.toFixed(4)}, c₁ = ${c1.toFixed(2)}, 预测 = c₁ + a₁×Pₙ = ${predAR.toFixed(2)}</p></details>`;
         html += `</div>`;
       }
       if (method === 'arima' || method === 'all') {
         html += `<div class="method-card" data-method="arima">`;
-        html += `<div class="prediction">ARIMA(1,1,0) 预测 ${predictedDateLabel} 收盘价：${predARIMA.toFixed(2)} USD</div>`;
+        html += `<div class="prediction ${getUpDownClass(predARIMA, lastPrice)}">ARIMA(1,1,0) 预测 ${predictedDateLabel} 收盘价：${predARIMA.toFixed(2)} USD</div>`;
         // ARIMA 详细演算
         html += `<details><summary>详细演算 (ARIMA)</summary><p>a₂ = ${a2.toFixed(4)}, c₂ = ${c2.toFixed(4)}, 差分预测 = ${predDiff.toFixed(2)}, 预测 = Pₙ + 差分 = ${predARIMA.toFixed(2)}</p></details>`;
         html += `</div>`;
       }
       if (method === 'ml' || method === 'all') {
         html += `<div class="method-card" data-method="ml">`;
-        html += `<div class="prediction">机器学习 (ML ensemble) 预测 ${predictedDateLabel} 收盘价：${predML.toFixed(2)} USD</div>`;
+        html += `<div class="prediction ${getUpDownClass(predML, lastPrice)}">机器学习 (ML ensemble) 预测 ${predictedDateLabel} 收盘价：${predML.toFixed(2)} USD</div>`;
         // ML 详细演算
         html += `<details><summary>详细演算 (ML 集成)</summary><p>MA = ${avg.toFixed(2)}, LR = ${predLR.toFixed(2)}, EMA = ${predEMA.toFixed(2)}</p><p>ML = (MA + LR + EMA)/3 = ${predML.toFixed(2)}</p></details>`;
         html += `</div>`;
