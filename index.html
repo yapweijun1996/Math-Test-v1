@@ -59,14 +59,36 @@
         sum += closes[i];
       }
       const avg = sum / timestamps.length;
+      // 计算简单线性回归预测
+      const n = timestamps.length;
+      let xSum = 0;
+      for (let i = 0; i < n; i++) xSum += i;
+      const xMean = xSum / n;
+      const yMean = avg; // sum/n
+      let num = 0, den = 0;
+      for (let i = 0; i < n; i++) {
+        num += (i - xMean) * (closes[i] - yMean);
+        den += (i - xMean) * (i - xMean);
+      }
+      const slope = num / den;
+      const intercept = yMean - slope * xMean;
+      const predLR = intercept + slope * n;
       html += `</table>
-        <div class="prediction">5 日均线预测下一个收盘价：${avg.toFixed(2)} USD</div>`;
+        <div class="prediction">5 日均线预测下一个收盘价：${avg.toFixed(2)} USD</div>
+        <div class="prediction">线性回归预测下一个收盘价：${predLR.toFixed(2)} USD</div>`;
       if (isFallback) {
         html += `<div class="info">* 使用静态示例数据演示，无需 API Key 或代理。</div>`;
       } else {
         html += `<div class="info">* 使用 Yahoo Finance 公开 API 获取实时数据。</div>`;
       }
-      html += `<div class="algorithm"><strong>算法说明：</strong><br>5日均线 = (P₁ + P₂ + P₃ + P₄ + P₅) / 5<br><code>(closes[0] + closes[1] + closes[2] + closes[3] + closes[4]) / 5</code></div>`;
+      html += `<div class="algorithm"><strong>算法说明：</strong><br>
+      • 5日均线 (Moving Average) = (P₁ + P₂ + P₃ + P₄ + P₅) / 5<br>
+      • 简单线性回归 (Linear Regression):<br>
+         &nbsp;&nbsp;斜率 b = Σ(i - x̄)(P_i - ȳ) / Σ(i - x̄)²<br>
+         &nbsp;&nbsp;截距 a = ȳ - b × x̄<br>
+         &nbsp;&nbsp;预测 P₆ = a + b × 5<br>
+       <br><code>// slope = num/den; intercept = yMean - slope*xMean; predLR = intercept + slope*n;</code>
+      </div>`;
       resultDiv.innerHTML = html;
     }
   </script>
