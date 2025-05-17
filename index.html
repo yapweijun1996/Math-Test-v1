@@ -27,6 +27,10 @@
       <input type="text" id="symbol" placeholder="AAPL">
     </div>
     <div>
+      <label for="window-size">窗口大小 (天)：</label>
+      <input type="number" id="window-size" min="1" max="365" value="30" style="width:60px;">
+    </div>
+    <div>
       <label for="start-date">开始日期：</label>
       <input type="date" id="start-date">
     </div>
@@ -100,7 +104,9 @@
         html += `<tr><td>${date}</td><td>${closes[i].toFixed(2)}</td></tr>`;
       }
       html += `</table></div>`;
-      const windowSize = Math.min(5, closes.length);
+      // Use user-specified window size (default 30 days)
+      const windowInput = parseInt(document.getElementById('window-size').value, 10) || 30;
+      const windowSize = Math.min(windowInput, closes.length);
       const lastCloses = closes.slice(-windowSize);
       const avg = lastCloses.reduce((a, b) => a + b, 0) / windowSize;
       // 计算简单线性回归预测基于最后 windowSize 天的数据
@@ -123,20 +129,20 @@
       const predictedDateLabel = predictedDate.toLocaleDateString();
       html += `<div class="info">数据范围：${new Date(timestamps[0] * 1000).toLocaleDateString()} - ${new Date(timestamps[timestamps.length - 1] * 1000).toLocaleDateString()}</div>`;
       html += `
-        <div class="prediction">5 日均线预测 ${predictedDateLabel} 收盘价：${avg.toFixed(2)} USD</div>
-        <div class="prediction">线性回归预测 ${predictedDateLabel} 收盘价：${predLR.toFixed(2)} USD</div>`;
+        <div class="prediction">${windowSize} 日均线预测 ${predictedDateLabel} 收盘价：${avg.toFixed(2)} USD</div>
+        <div class="prediction">线性回归 (${windowSize} 天) 预测 ${predictedDateLabel} 收盘价：${predLR.toFixed(2)} USD</div>`;
       if (isFallback) {
         html += `<div class="info">* 使用静态示例数据演示，无需 API Key 或代理。</div>`;
       } else {
         html += `<div class="info">* 使用 Yahoo Finance 公开 API 获取实时数据。</div>`;
       }
       html += `<div class="algorithm"><strong>算法说明：</strong><br>
-       • 5日均线 (Moving Average) = (P₁ + P₂ + P₃ + P₄ + P₅) / 5<br>
+       • N日均线 (Moving Average) = (P₁ + P₂ + ... + P_N) / N<br>
        • 简单线性回归 (Linear Regression):<br>
           &nbsp;&nbsp;斜率 b = Σ(i - x̄)(P_i - ȳ) / Σ(i - x̄)²<br>
           &nbsp;&nbsp;截距 a = ȳ - b × x̄<br>
-          &nbsp;&nbsp;预测 P₆ = a + b × 5<br>
-        <br><code>// slope = num/den; intercept = yMean - slope*xMean; predLR = intercept + slope*n;</code>
+          &nbsp;&nbsp;预测 Pₙ₊₁ = a + b × N<br>
+        <br><code>// windowSize = N; slope = num/den; intercept = yMean - slope*xMean; predLR = intercept + slope*windowSize;</code>
        </div>`;
       // Add detailed calculation walkthrough example
       html += `<div class="detail" style="margin-top:16px; padding:12px; background:#f9f9f9; border:1px solid #ddd; border-radius:4px;">
